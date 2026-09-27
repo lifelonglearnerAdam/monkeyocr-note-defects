@@ -1,0 +1,481 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>MonkeyOCR × OmniDocBench Note · 模型缺陷对比</title>
+<style>
+:root{--bg:#f6f4ef;--ink:#1c1b19;--muted:#6b6560;--card:#fffdf9;--line:#e4ddd2;
+--red:#b42318;--amber:#b54708;--green:#027a48;--blue:#175cd3;}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+background:var(--bg);color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+header.hero{margin-bottom:18px}
+h1{font-size:28px;line-height:1.25;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 14px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:999px;
+padding:6px 12px;font-size:13px}
+.pill b{font-size:16px}
+.mode{margin:28px 0 10px;padding:10px 14px;border-left:4px solid var(--red);
+background:#fff6f5;border-radius:0 10px 10px 0}
+.mode h2{margin:0;font-size:20px}
+.mode p{margin:6px 0 0;color:var(--muted)}
+.case{background:var(--card);border:1px solid var(--line);border-radius:14px;
+padding:16px 16px 12px;margin:16px 0 22px}
+.case header{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between}
+.case h3{margin:0;font-size:18px}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;
+border:1px solid var(--line);background:#fff}
+.badge.id{background:#eef4ff;color:var(--blue);border-color:#c7d7fe}
+.badge.score{background:#f4f4f4;color:#444}
+.badge.red{background:#fee4e2;color:var(--red);border-color:#fecdca}
+.badge.amber{background:#fef0c7;color:var(--amber);border-color:#fde68a}
+.badge.green{background:#d1fadf;color:var(--green);border-color:#a6f4c5}
+.cap{margin:8px 0 12px;color:#3d3a36}
+.grid3{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:12px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr}}
+.col h4{margin:0 0 8px;font-size:13px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+figure{margin:0}
+figure img{width:100%;height:auto;display:block;border:1px solid var(--line);
+border-radius:8px;background:#fff}
+figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+.mono{font-family:Consolas,"Courier New",monospace;font-size:15px;
+padding:12px 14px;border-radius:8px;border:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.mono.gt{background:#f0fdf4;border-color:#bbf7d0;font-size:17px;font-weight:600}
+.mono.pred{background:#fff1f2;border-color:#fecdd3;font-size:17px;font-weight:600}
+.formula-duel{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.formula-duel h5{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.htmlsrc{font-family:Consolas,monospace;font-size:11px;color:#555;background:#fafafa;
+border:1px dashed var(--line);border-radius:8px;padding:8px;max-height:140px;overflow:auto}
+.livetable{margin-top:8px;overflow:auto}
+.livetable table{border-collapse:collapse;width:100%;font-size:12px;background:#fff}
+.livetable td,.livetable th{border:1px solid var(--line);padding:4px 6px;vertical-align:top}
+.empty{padding:28px 12px;text-align:center;color:var(--red);background:#fff1f2;
+border:1px dashed #fecdca;border-radius:8px;font-weight:600}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 8px}
+@media(max-width:700px){.kpi{grid-template-columns:1fr 1fr}}
+.kpi div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .n{font-size:26px;font-weight:700}
+.kpi .l{font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin:10px 0 18px}
+footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);
+color:var(--muted);font-size:12px}
+table.summary{width:100%;border-collapse:collapse;background:var(--card);
+border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+table.summary th,table.summary td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+table.summary th{background:#f3efe8;font-weight:600}
+</style>
+</head>
+<body>
+<p data-aigc-mark="1" style="margin:0 0 8px;font-size:10px;line-height:1.3;color:#6b6560;font-weight:400;">AI生成</p>
+
+<div class="wrap">
+<header class="hero">
+  <h1>MonkeyOCRv2-B × OmniDocBench Note<br/>表格与公式缺陷对比（看图版）</h1>
+  <p class="sub">单人初审 · test_only · 少文字多图 · 2026-09-21</p>
+  <div class="pills">
+    <div class="pill">范围 <b>37 表 + 25 公式</b></div>
+    <div class="pill">方法 <b>原图裁剪 ↔ GT ↔ 预测</b></div>
+    <div class="pill">口径 <b>TEDS 73.13 / CDM 65.05</b></div>
+  </div>
+</header>
+
+<div class="kpi">
+  <div><div class="n">62</div><div class="l">诊断元素（37表+25式）</div></div>
+  <div><div class="n">12</div><div class="l">FAIL（严重不可用）</div></div>
+  <div><div class="n">18</div><div class="l">MAJOR（结构受损）</div></div>
+  <div><div class="n">73.13%</div><div class="l">Table TEDS（≠正确率）</div></div>
+</div>
+<div class="kpi">
+  <div><div class="n">3</div><div class="l">公式被收成 Text（CDM=0）</div></div>
+  <div><div class="n">20/27</div><div class="l">问题样本 IoU≥0.9（框准）</div></div>
+  <div><div class="n">65.05%</div><div class="l">Formula CDM</div></div>
+  <div><div class="n">52</div><div class="l">问题条目（单人初审）</div></div>
+</div>
+<p class="note">结论一句话：<b>表格不是“没找到”，而是“找到了但结构解不对”；公式不是单纯漏检，而是类别、匹配和符号三重问题。</b>
+TEDS/CDM 是相似度，不是正确率。本报告为单人看图初审，P0/P1 仍待复核确认。</p>
+
+
+<table class="summary">
+<tr><th>模式</th><th>现象</th><th>主根因</th><th>典型指标</th></tr>
+<tr><td>A 漏检/类别错</td><td>整表无框；公式变 Text</td><td>model_layout</td><td>TEDS=0 / CDM=0</td></tr>
+<tr><td>B 结构打散</td><td>格内换行当新行、rowspan 压平</td><td>model_table</td><td>TEDS 0.19–0.47</td></tr>
+<tr><td>C 拆表/丢表头</td><td>一表多块、表头丢失</td><td>model_layout</td><td>IoU 0.06–0.64</td></tr>
+<tr><td>D 公式内容/匹配</td><td>“高”→1/10、匹配无关式</td><td>model_formula / evaluation_matching</td><td>CDM 0.39–0.67</td></tr>
+<tr><td>E 文字/符号</td><td>错字、标点、LaTeX 不一致</td><td>model_table / model_formula</td><td>高分段仍有实质错</td></tr>
+<tr><td>F 框错位</td><td>GT 与预测框不重叠 / 一表多框</td><td>model_layout / evaluation_matching</td><td>IoU 0–0.64</td></tr>
+</table>
+
+<div class="mode"><h2>模式 F · 预测框 vs 标注框</h2><p>绿框 = GT 诊断元素 bbox，红框 = 同页 MonkeyOCR 预测块。页面坐标系，按比例缩放。</p></div>
+<section class="case">
+  <header><h3>table-0035 框对比</h3>
+    <div class="meta"><span class="badge red">IoU=0.000</span>
+    <span class="badge id">page 1434×2026</span></div></header>
+  <p class="cap">GT 细长表（绿）与唯一 Table 预测框（红）完全不重叠 → IoU=0</p>
+  <div class="grid3">
+    <div class="col"><img src="assets/table-0035.png" alt="table-0035" loading="lazy" style="width:100%;border:1px solid var(--line);border-radius:8px"/></div>
+    <div class="col" style="grid-column:span 2"><svg viewBox="0 0 520 735" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect width="520" height="735" fill="#f3f0ea" stroke="#ccc"/>
+<rect x="48.6" y="64.2" width="438.8" height="36.3" fill="#027a48" fill-opacity="0.12" stroke="#027a48" stroke-width="2"/><text x="52.6" y="78.2" font-size="11" fill="#027a48">GT</text><rect x="42.1" y="111.0" width="445.7" height="188.2" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="46.1" y="125.0" font-size="11" fill="#b42318">PRED 1</text>
+</svg></div>
+  </div>
+</section>
+<section class="case">
+  <header><h3>table-0020 框对比</h3>
+    <div class="meta"><span class="badge amber">IoU=0.644</span>
+    <span class="badge id">page 1434×2026</span></div></header>
+  <p class="cap">一张 GT 表被切成两个预测框，表头段与主体段各自残缺</p>
+  <div class="grid3">
+    <div class="col"><img src="assets/table-0020.png" alt="table-0020" loading="lazy" style="width:100%;border:1px solid var(--line);border-radius:8px"/></div>
+    <div class="col" style="grid-column:span 2"><svg viewBox="0 0 520 735" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect width="520" height="735" fill="#f3f0ea" stroke="#ccc"/>
+<rect x="70.3" y="222.3" width="428.3" height="208.1" fill="#027a48" fill-opacity="0.12" stroke="#027a48" stroke-width="2"/><text x="74.3" y="236.3" font-size="11" fill="#027a48">GT</text><rect x="72.9" y="224.8" width="419.9" height="45.0" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="76.9" y="238.8" font-size="11" fill="#b42318">PRED 1</text><rect x="72.9" y="290.8" width="419.9" height="136.7" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="76.9" y="304.8" font-size="11" fill="#b42318">PRED 2</text>
+</svg></div>
+  </div>
+</section>
+<section class="case">
+  <header><h3>formula-0003 框对比</h3>
+    <div class="meta"><span class="badge red">IoU=n/a</span>
+    <span class="badge id">page 1434×2026</span></div></header>
+  <p class="cap">同页零个 Formula 框；内容落在 Text 类别（未画红框）</p>
+  <div class="grid3">
+    <div class="col"><img src="assets/formula-0003.png" alt="formula-0003" loading="lazy" style="width:100%;border:1px solid var(--line);border-radius:8px"/></div>
+    <div class="col" style="grid-column:span 2"><svg viewBox="0 0 520 735" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect width="520" height="735" fill="#f3f0ea" stroke="#ccc"/>
+<rect x="94.3" y="182.8" width="253.1" height="19.2" fill="#027a48" fill-opacity="0.12" stroke="#027a48" stroke-width="2"/><text x="98.3" y="196.8" font-size="11" fill="#027a48">GT</text><text x="20" y="367.3" font-size="16" fill="#b42318" font-weight="700">无 Formula/Table 预测框</text>
+</svg></div>
+  </div>
+</section>
+<section class="case">
+  <header><h3>formula-0013 框对比</h3>
+    <div class="meta"><span class="badge red">IoU=0.000</span>
+    <span class="badge id">page 1654×2339</span></div></header>
+  <p class="cap">GT 面积公式（绿）vs 三个 Formula 预测框（红）均 IoU=0</p>
+  <div class="grid3">
+    <div class="col"><img src="assets/formula-0013.png" alt="formula-0013" loading="lazy" style="width:100%;border:1px solid var(--line);border-radius:8px"/></div>
+    <div class="col" style="grid-column:span 2"><svg viewBox="0 0 520 735" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect width="520" height="735" fill="#f3f0ea" stroke="#ccc"/>
+<rect x="89.9" y="373.2" width="346.8" height="77.7" fill="#027a48" fill-opacity="0.12" stroke="#027a48" stroke-width="2"/><text x="93.9" y="387.2" font-size="11" fill="#027a48">GT</text><rect x="105.6" y="159.7" width="333.3" height="56.6" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="109.6" y="173.7" font-size="11" fill="#b42318">PRED 1</text><rect x="101.9" y="218.5" width="298.7" height="60.0" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="105.9" y="232.5" font-size="11" fill="#b42318">PRED 2</text><rect x="78.9" y="583.2" width="380.7" height="30.8" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="82.9" y="597.2" font-size="11" fill="#b42318">PRED 3</text>
+</svg></div>
+  </div>
+</section>
+<section class="case">
+  <header><h3>formula-0024 框对比</h3>
+    <div class="meta"><span class="badge red">IoU=0.058</span>
+    <span class="badge id">page 1654×2339</span></div></header>
+  <p class="cap">最佳预测框仅擦边，IoU=0.06</p>
+  <div class="grid3">
+    <div class="col"><img src="assets/formula-0024.png" alt="formula-0024" loading="lazy" style="width:100%;border:1px solid var(--line);border-radius:8px"/></div>
+    <div class="col" style="grid-column:span 2"><svg viewBox="0 0 520 735" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect width="520" height="735" fill="#f3f0ea" stroke="#ccc"/>
+<rect x="83.9" y="629.4" width="380.1" height="25.5" fill="#027a48" fill-opacity="0.12" stroke="#027a48" stroke-width="2"/><text x="87.9" y="643.4" font-size="11" fill="#027a48">GT</text><rect x="79.5" y="605.8" width="323.5" height="26.7" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="83.5" y="619.8" font-size="11" fill="#b42318">PRED 1</text>
+</svg></div>
+  </div>
+</section>
+<section class="case">
+  <header><h3>formula-0016 框对比</h3>
+    <div class="meta"><span class="badge red">IoU=0.262</span>
+    <span class="badge id">page 1654×2339</span></div></header>
+  <p class="cap">预测框过宽且多切出尾巴，IoU=0.26</p>
+  <div class="grid3">
+    <div class="col"><img src="assets/formula-0016.png" alt="formula-0016" loading="lazy" style="width:100%;border:1px solid var(--line);border-radius:8px"/></div>
+    <div class="col" style="grid-column:span 2"><svg viewBox="0 0 520 735" width="100%" xmlns="http://www.w3.org/2000/svg">
+<rect width="520" height="735" fill="#f3f0ea" stroke="#ccc"/>
+<rect x="59.4" y="284.8" width="143.0" height="47.8" fill="#027a48" fill-opacity="0.12" stroke="#027a48" stroke-width="2"/><text x="63.4" y="298.8" font-size="11" fill="#027a48">GT</text><rect x="61.3" y="288.9" width="344.9" height="66.3" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="65.3" y="302.9" font-size="11" fill="#b42318">PRED 1</text><rect x="187.7" y="359.7" width="120.7" height="42.4" fill="#b42318" fill-opacity="0.12" stroke="#b42318" stroke-width="2" stroke-dasharray="6 3"/><text x="191.7" y="373.7" font-size="11" fill="#b42318">PRED 2</text>
+</svg></div>
+  </div>
+</section>
+<div class="mode"><h2>模式 A · 漏检 / 类别错误</h2><p>GT 区域存在，预测框不覆盖，或被收成 Text 导致公式指标为 0。</p></div>
+<section class="case">
+  <header>
+    <h3>细长数词表整表未检出 <span class="badge red">FAIL</span></h3>
+    <div class="meta"><span class="badge id">table-0035</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.0 · TEDS_structure_only=0.0 · Edit_dist=1.0</span> <span class="badge score">IoU=0.0</span></div>
+  </header>
+  <p class="cap">原图是一行 “70 seventy | 80 eighty | …”。预测框从 y=306 开始，完全不覆盖本表（IoU=0），却输出了下方另一张序数表的内容。TEDS=0。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0035.png" alt="table-0035 crop" loading="lazy"/><figcaption>原图裁剪 · notes_f7f010b78016aeebd76e56d9283eb6</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;70 seventy&lt;/td&gt;&lt;td&gt;80so eighty&lt;/td&gt;&lt;td&gt;90 ninety&lt;/td&gt;&lt;td&gt;100 one(a) hundred&lt;/td&gt;&lt;td&gt;101 one hundred and one&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>70 seventy</td><td>80so eighty</td><td>90 ninety</td><td>100 one(a) hundred</td><td>101 one hundred and one</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;1st&lt;/td&gt;&lt;td&gt;first&lt;/td&gt;&lt;td&gt;9th&lt;/td&gt;&lt;td&gt;ninth&lt;/td&gt;&lt;td&gt;17th&lt;/td&gt;&lt;td&gt;seventeenth&lt;/td&gt;&lt;td&gt;21st&lt;/td&gt;&lt;td&gt;twenty-first&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;2nd&lt;/td&gt;&lt;td&gt;second&lt;/td&gt;&lt;td&gt;10th&lt;/td&gt;&lt;td&gt;teenth&lt;/td&gt;&lt;td&gt;18th&lt;/td&gt;&lt;td&gt;eighteenth&lt;/td&gt;&lt;td&gt;22nd&lt;/td&gt;&lt;td&gt;twenty-second&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;3rd&lt;/td&gt;&lt;td&gt;third&lt;/td&gt;&lt;td&gt;11th&lt;/td&gt;&lt;td&gt;eleventh&lt;/td&gt;&lt;td&gt;19th&lt;/td&gt;&lt;td&gt;nineteenth&lt;/td&gt;&lt;td&gt;23rd&lt;/td&gt;&lt;td&gt;twenty-third&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;4th&lt;/td&gt;&lt;td&gt;fourth&lt;/td&gt;&lt;td&gt;12th&lt;/td&gt;&lt;td&gt;twelfth&lt;/td&gt;&lt;td&gt;20th&lt;/td&gt;&lt;td&gt;twentieth&lt;/td&gt;&lt;td&gt;35th&lt;/td&gt;&lt;td&gt;thirty-fifth&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;5th&lt;/td&gt;&lt;td&gt;fifth&lt;/td&gt;&lt;td&gt;13th&lt;/td&gt;&lt;td&gt;thirteenth&lt;/td&gt;&lt;td&gt;30th&lt;/td&gt;&lt;td&gt;thirtieth&lt;/td&gt;&lt;td&gt;101st&lt;/td&gt;&lt;td&gt;one hundred&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;6th&lt;/td&gt;&lt;td&gt;sixth&lt;/td&gt;&lt;td&gt;14th&lt;/td&gt;&lt;td&gt;fourteenth&lt;/td&gt;&lt;td&gt;80th&lt;/td&gt;&lt;td&gt;eightieth&lt;/td&gt;&lt;td&gt;and first&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;7th&lt;/td&gt;&lt;td&gt;seventh&lt;/td&gt;&lt;td&gt;15th&lt;/td&gt;&lt;td&gt;fifteenth&lt;/td&gt;&lt;td&gt;90th&lt;/td&gt;&lt;td&gt;ninetieth&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;8th&lt;/td&gt;&lt;td&gt;eighth&lt;/td&gt;&lt;td&gt;16th&lt;/td&gt;&lt;td&gt;sixteenth&lt;/td&gt;&lt;td&gt;100th&lt;/td&gt;&lt;td&gt;one hundredth&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td>1st</td><td>first</td><td>9th</td><td>ninth</td><td>17th</td><td>seventeenth</td><td>21st</td><td>twenty-first</td></tr><tr><td>2nd</td><td>second</td><td>10th</td><td>teenth</td><td>18th</td><td>eighteenth</td><td>22nd</td><td>twenty-second</td></tr><tr><td>3rd</td><td>third</td><td>11th</td><td>eleventh</td><td>19th</td><td>nineteenth</td><td>23rd</td><td>twenty-third</td></tr><tr><td>4th</td><td>fourth</td><td>12th</td><td>twelfth</td><td>20th</td><td>twentieth</td><td>35th</td><td>thirty-fifth</td></tr><tr><td>5th</td><td>fifth</td><td>13th</td><td>thirteenth</td><td>30th</td><td>thirtieth</td><td>101st</td><td>one hundred</td></tr><tr><td>6th</td><td>sixth</td><td>14th</td><td>fourteenth</td><td>80th</td><td>eightieth</td><td>and first</td><td></td></tr><tr><td>7th</td><td>seventh</td><td>15th</td><td>fifteenth</td><td>90th</td><td>ninetieth</td><td></td><td></td></tr><tr><td>8th</td><td>eighth</td><td>16th</td><td>sixteenth</td><td>100th</td><td>one hundredth</td><td></td><td></td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>中文公式被收成 Text <span class="badge red">CDM=0</span></h3>
+    <div class="meta"><span class="badge id">formula-0003</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.0 · Edit_dist=1.0</span> <span class="badge score">IoU=n/a</span></div>
+  </header>
+  <p class="cap">原图是“日平均气温=…÷观测次数”。同页无 Formula 框；内容出现在 Text 块（IoU=0.83），公式评测按 0 计。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0003.png" alt="formula-0003 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$日平均气温=一日内气温观测值之和{\div} 观测次数$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">（无 Formula 框）</div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>月平均气温公式同类问题 <span class="badge red">CDM=0</span></h3>
+    <div class="meta"><span class="badge id">formula-0004</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.0 · Edit_dist=1.0</span> <span class="badge score">IoU=n/a</span></div>
+  </header>
+  <p class="cap">与上条同页，Text IoU=0.93，类别仍不是 Formula。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0004.png" alt="formula-0004 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$月平均气温=一月内日平均气温之和{\div} 当月天数$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">（无 Formula 框）</div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>年平均气温公式同类问题 <span class="badge red">CDM=0</span></h3>
+    <div class="meta"><span class="badge id">formula-0005</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.0 · Edit_dist=1.0</span> <span class="badge score">IoU=n/a</span></div>
+  </header>
+  <p class="cap">Text 中“=”被认成“二”、“÷”被认成“六”。类别错误 + 少量错字。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0005.png" alt="formula-0005 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$年平均气温=一年内月平均气温之和{\div} 月数\left ( 12 \right )$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">（无 Formula 框）</div></div>
+  </div>
+</section>
+<div class="mode"><h2>模式 B · 表格结构被打散</h2><p>检测框基本正确（IoU 常 ≥0.9），但行列 / 跨行关系被拆坏。这是当前 TEDS 的主要失分点。</p></div>
+<section class="case">
+  <header>
+    <h3>格内换行 → 被当成新表行 <span class="badge red">TEDS=0.26</span></h3>
+    <div class="meta"><span class="badge id">table-0022</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.263889 · TEDS_structure_only=0.333333 · Edit_dist=0.371429</span> <span class="badge score">IoU=0.925</span></div>
+  </header>
+  <p class="cap">原图两行三列，中间列文字在同一格内换行。预测拆成 4 行并写 rowspan，结构完全变样。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0022.png" alt="table-0022 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;重工业&lt;/td&gt;&lt;td&gt;以生产生产数据为主的工业&lt;/td&gt;&lt;td&gt;采矿、冶金、电力、机械、化学工业、核工业等&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;轻工业&lt;/td&gt;&lt;td&gt;以生产生活数据为主的工业&lt;/td&gt;&lt;td&gt;纺织、食品、皮革、造纸、钟表、家用电器等&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>重工业</td><td>以生产生产数据为主的工业</td><td>采矿、冶金、电力、机械、化学工业、核工业等</td></tr><tr><td>轻工业</td><td>以生产生活数据为主的工业</td><td>纺织、食品、皮革、造纸、钟表、家用电器等</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;重工业&lt;/td&gt;&lt;td&gt;以生产生产数据&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;采矿、冶金、电力、机械、化学工业、核工业等&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;为主的工业&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;轻工业&lt;/td&gt;&lt;td&gt;以生产生活数据&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;纺织、食品、皮革、造纸、钟表、家用电器等&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;为主的工业&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td rowspan="2">重工业</td><td>以生产生产数据</td><td rowspan="2">采矿、冶金、电力、机械、化学工业、核工业等</td></tr><tr><td>为主的工业</td></tr><tr><td rowspan="2">轻工业</td><td>以生产生活数据</td><td rowspan="2">纺织、食品、皮革、造纸、钟表、家用电器等</td></tr><tr><td>为主的工业</td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>跨行合并表被压成 2 行 <span class="badge red">TEDS=0.19</span></h3>
+    <div class="meta"><span class="badge id">table-0033</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.192082 · TEDS_structure_only=0.363636 · Edit_dist=0.355422</span> <span class="badge score">IoU=0.9581</span></div>
+  </header>
+  <p class="cap">原图“国内/国际”跨行 + 右侧“走可持续发展道路”纵向合并。预测压成 2 行，rowspan 全丢。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0033.png" alt="table-0033 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;国内&lt;/td&gt;&lt;td&gt;利用有利条件，因地制宜，合理改造不利条件&lt;/td&gt;&lt;td rowspan=&quot;4&quot;&gt;走可持续发展道路&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;加强区域合作，发展地区优势，互利互惠。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;国际&lt;/td&gt;&lt;td&gt;①要积极融入经济全球化的过程中，加强与世界各国、各地区的经济合作。引进资金和先进的技术，管理经验，努力开拓国际市场。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;②保卫世界和平，保护地球生态环境，促使人类社会的进步，肩负着重大责任。&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td rowspan="2">国内</td><td>利用有利条件，因地制宜，合理改造不利条件</td><td rowspan="4">走可持续发展道路</td></tr><tr><td>加强区域合作，发展地区优势，互利互惠。</td></tr><tr><td rowspan="2">国际</td><td>①要积极融入经济全球化的过程中，加强与世界各国、各地区的经济合作。引进资金和先进的技术，管理经验，努力开拓国际市场。</td></tr><tr><td>②保卫世界和平，保护地球生态环境，促使人类社会的进步，肩负着重大责任。</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;国内&lt;/td&gt;&lt;td&gt;利用有利条件，因地制宜，合理改造不利条件，加强区域合作，发挥地区优势，互惠互利。&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;国际&lt;/td&gt;&lt;td&gt;①要积极融入经济全球化的过程中，加强与世界各国、各地区的经济合作，引进资金和先进的技术，管理经验，努力开拓国际市场；②保卫世界和平，保护地球生态环境，促使人类社会的进步，有负责重大责任。&lt;/td&gt;&lt;td&gt;走可持续发展道路&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td>国内</td><td>利用有利条件，因地制宜，合理改造不利条件，加强区域合作，发挥地区优势，互惠互利。</td><td></td></tr><tr><td>国际</td><td>①要积极融入经济全球化的过程中，加强与世界各国、各地区的经济合作，引进资金和先进的技术，管理经验，努力开拓国际市场；②保卫世界和平，保护地球生态环境，促使人类社会的进步，有负责重大责任。</td><td>走可持续发展道路</td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>气候表 3 行 → 7 行 <span class="badge red">TEDS=0.34</span></h3>
+    <div class="meta"><span class="badge id">table-0006</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.336538 · TEDS_structure_only=0.423077 · Edit_dist=0.504167</span> <span class="badge score">IoU=0.9451</span></div>
+  </header>
+  <p class="cap">检测 IoU=0.95，框很准；预测把单元格多行文字和跨行结构拆成 7 行、5 个 rowspan。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0006.png" alt="table-0006 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;气候类型&lt;/td&gt;&lt;td&gt;气候特征&lt;/td&gt;&lt;td&gt;主要分布地区&lt;/td&gt;&lt;td&gt;对农业影响&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;热带雨林气候&lt;/td&gt;&lt;td&gt;终年高温多雨&lt;/td&gt;&lt;td&gt;马来群岛大部分、马来半岛南部&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;粮食作物：稻米（泰国）
+四种产量世界第一的热带经济作物及产地：
+橡胶：泰国
+油棕：马来西亚
+椰子：印度尼西亚
+蕉麻：菲律宾&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;热带季风气候&lt;/td&gt;&lt;td&gt;全年高温，一年分旱雨两季&lt;/td&gt;&lt;td&gt;中南半岛、菲律宾群岛北部&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>气候类型</td><td>气候特征</td><td>主要分布地区</td><td>对农业影响</td></tr><tr><td>热带雨林气候</td><td>终年高温多雨</td><td>马来群岛大部分、马来半岛南部</td><td rowspan="2">粮食作物：稻米（泰国）
+四种产量世界第一的热带经济作物及产地：
+橡胶：泰国
+油棕：马来西亚
+椰子：印度尼西亚
+蕉麻：菲律宾</td></tr><tr><td>热带季风气候</td><td>全年高温，一年分旱雨两季</td><td>中南半岛、菲律宾群岛北部</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;气候类型&lt;/td&gt;&lt;td&gt;气候特征&lt;/td&gt;&lt;td&gt;主要分布地区&lt;/td&gt;&lt;td&gt;对农业影响&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;热带雨林气候&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;终年高温多雨&lt;/td&gt;&lt;td&gt;马来西亚大部分马来西亚&lt;/td&gt;&lt;td&gt;粮食作物：稻米（泰国）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;来半岛南部&lt;/td&gt;&lt;td&gt;四种产量世界第一的热带经济作物及产地：&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;热带季风气候&lt;/td&gt;&lt;td&gt;全年高温，一年&lt;/td&gt;&lt;td&gt;中南半岛、菲律宾&lt;/td&gt;&lt;td&gt;橡胶、泰国&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;分旱雨雨季&lt;/td&gt;&lt;td rowspan=&quot;3&quot;&gt;群岛北部&lt;/td&gt;&lt;td&gt;油棕、马来西亚&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;椰子：印度尼西亚&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;蔗麻：菲律宾&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td>气候类型</td><td>气候特征</td><td>主要分布地区</td><td>对农业影响</td></tr><tr><td rowspan="2">热带雨林气候</td><td rowspan="2">终年高温多雨</td><td>马来西亚大部分马来西亚</td><td>粮食作物：稻米（泰国）</td></tr><tr><td>来半岛南部</td><td>四种产量世界第一的热带经济作物及产地：</td></tr><tr><td rowspan="4">热带季风气候</td><td>全年高温，一年</td><td>中南半岛、菲律宾</td><td>橡胶、泰国</td></tr><tr><td rowspan="3">分旱雨雨季</td><td rowspan="3">群岛北部</td><td>油棕、马来西亚</td></tr><tr><td>椰子：印度尼西亚</td></tr><tr><td>蔗麻：菲律宾</td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>复杂跨行人文表 9→6 行 <span class="badge amber">TEDS=0.47</span></h3>
+    <div class="meta"><span class="badge id">table-0026</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.468384 · TEDS_structure_only=0.5 · Edit_dist=0.275338</span> <span class="badge score">IoU=0.9454</span></div>
+  </header>
+  <p class="cap">GT 含空 &lt;tr&gt; 与大量 rowspan；预测压平成 6 行，并出现“砖瓦灯林”等错字。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0026.png" alt="table-0026 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td rowspan=&quot;9&quot;&gt;人文差异&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;业&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;主要水果&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;苹果（产地：山东丘陵.
+（辽东丘陵）&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;柑橘&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;7&quot;&gt;生活&lt;/td&gt;&lt;td&gt;主食&lt;/td&gt;&lt;td&gt;面食.米（黄土高原）&lt;/td&gt;&lt;td&gt;大米&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;住宅&lt;/td&gt;&lt;td&gt;土坯垒墙，屋顶坡度较小。&lt;/td&gt;&lt;td&gt;砖瓦竹木，屋顶坡度较大。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;特点&lt;/td&gt;&lt;td&gt;墙体较厚，注意防寒保暖。&lt;/td&gt;&lt;td&gt;墙体高，注意通风散热。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;传统交
+通工具&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;马拉大车&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;船舶&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;体育活动&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;溜冰、滑雪&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;龙舟竞赛、游泳&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td rowspan="9">人文差异</td><td rowspan="2">业</td><td rowspan="2">主要水果</td><td rowspan="2">苹果（产地：山东丘陵.
+（辽东丘陵）</td><td rowspan="2">柑橘</td></tr><tr></tr><tr><td rowspan="7">生活</td><td>主食</td><td>面食.米（黄土高原）</td><td>大米</td></tr><tr><td>住宅</td><td>土坯垒墙，屋顶坡度较小。</td><td>砖瓦竹木，屋顶坡度较大。</td></tr><tr><td>特点</td><td>墙体较厚，注意防寒保暖。</td><td>墙体高，注意通风散热。</td></tr><tr><td rowspan="2">传统交
+通工具</td><td rowspan="2">马拉大车</td><td rowspan="2">船舶</td></tr><tr></tr><tr><td rowspan="2">体育活动</td><td rowspan="2">溜冰、滑雪</td><td rowspan="2">龙舟竞赛、游泳</td></tr><tr></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td rowspan=&quot;6&quot;&gt;人文差异&lt;/td&gt;&lt;td&gt;业&lt;/td&gt;&lt;td&gt;主要水果&lt;/td&gt;&lt;td&gt;苹果（产地：山东丘陵、（辽东丘陵）&lt;/td&gt;&lt;td&gt;柑橘&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;5&quot;&gt;生活&lt;/td&gt;&lt;td&gt;主食&lt;/td&gt;&lt;td&gt;面食、米（黄土高原）&lt;/td&gt;&lt;td&gt;大米&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;住宅&lt;/td&gt;&lt;td&gt;土坯垒墙、屋顶坡度较小&lt;/td&gt;&lt;td&gt;砖瓦灯林、屋顶坡度较大&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;特点&lt;/td&gt;&lt;td&gt;墙体较厚、注意防寒保暖&lt;/td&gt;&lt;td&gt;墙体高、注意通风散热&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;传统交通工具&lt;/td&gt;&lt;td&gt;马拉大车&lt;/td&gt;&lt;td&gt;船舶&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;体育活动&lt;/td&gt;&lt;td&gt;溜冰、滑雪&lt;/td&gt;&lt;td&gt;龙舟竞赛、游泳&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td rowspan="6">人文差异</td><td>业</td><td>主要水果</td><td>苹果（产地：山东丘陵、（辽东丘陵）</td><td>柑橘</td></tr><tr><td rowspan="5">生活</td><td>主食</td><td>面食、米（黄土高原）</td><td>大米</td></tr><tr><td>住宅</td><td>土坯垒墙、屋顶坡度较小</td><td>砖瓦灯林、屋顶坡度较大</td></tr><tr><td>特点</td><td>墙体较厚、注意防寒保暖</td><td>墙体高、注意通风散热</td></tr><tr><td>传统交通工具</td><td>马拉大车</td><td>船舶</td></tr><tr><td>体育活动</td><td>溜冰、滑雪</td><td>龙舟竞赛、游泳</td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>灾害表首行内容丢失 <span class="badge amber">TEDS=0.45</span></h3>
+    <div class="meta"><span class="badge id">table-0031</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.447561 · TEDS_structure_only=0.5 · Edit_dist=0.357513</span> <span class="badge score">IoU=0.897</span></div>
+  </header>
+  <p class="cap">预测首行格子为空，内容错位；tr 3→6。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0031.png" alt="table-0031 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;洪涝灾害（中下游）&lt;/td&gt;&lt;td&gt;①人民生命财产遭到巨大损失②生态环境遭受创伤，难以恢复&lt;/td&gt;&lt;td&gt;①自然因素-降水量大且集中，多暴雨。②人文因素-上游水土流失导致湖泊淤塞，加上围垦造成调洪能力降低，河道防洪能力减弱，加上防洪工程标准低，年久失修，险工隐患多。&lt;/td&gt;&lt;td&gt;①兴建水利措施，对长江河道及平原湖区进行综合治理。②对年久失修，功能不高的水库、堤坝进行加固，提高防洪标准。③抓好清淤疏浚，恢复河道防洪能力④严禁围垦湖泊、侵占江河、滩地，封堵江河湖泊水道，乱采江河砂石的行为。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;水体污染&lt;/td&gt;&lt;td&gt;水质下降，危害人体健康，影响水生物生存&lt;/td&gt;&lt;td&gt;工农业迅速发展，城市规模不断扩大，经济发展与环境保护没有同步。&lt;/td&gt;&lt;td&gt;①加强工业污染防治，做好环境整治工作，对现有污染源采取切实有效措施限期治理，按期达标。②对新建项目要做到生产与“三废”防治同时规划，同步建设。③对上海等工业聚集程度高的地区，做好城市规划工作，把环境保护和环境建设作为城市建设的重要内容。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;酸雨&lt;/td&gt;&lt;td&gt;导致水体、土壤、酸化，对植物、建筑物造成腐蚀性危害。&lt;/td&gt;&lt;td&gt;耗煤量大，煤的含硫量高。&lt;/td&gt;&lt;td&gt;调整能源消费结构，使用清洁能源。&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>洪涝灾害（中下游）</td><td>①人民生命财产遭到巨大损失②生态环境遭受创伤，难以恢复</td><td>①自然因素-降水量大且集中，多暴雨。②人文因素-上游水土流失导致湖泊淤塞，加上围垦造成调洪能力降低，河道防洪能力减弱，加上防洪工程标准低，年久失修，险工隐患多。</td><td>①兴建水利措施，对长江河道及平原湖区进行综合治理。②对年久失修，功能不高的水库、堤坝进行加固，提高防洪标准。③抓好清淤疏浚，恢复河道防洪能力④严禁围垦湖泊、侵占江河、滩地，封堵江河湖泊水道，乱采江河砂石的行为。</td></tr><tr><td>水体污染</td><td>水质下降，危害人体健康，影响水生物生存</td><td>工农业迅速发展，城市规模不断扩大，经济发展与环境保护没有同步。</td><td>①加强工业污染防治，做好环境整治工作，对现有污染源采取切实有效措施限期治理，按期达标。②对新建项目要做到生产与“三废”防治同时规划，同步建设。③对上海等工业聚集程度高的地区，做好城市规划工作，把环境保护和环境建设作为城市建设的重要内容。</td></tr><tr><td>酸雨</td><td>导致水体、土壤、酸化，对植物、建筑物造成腐蚀性危害。</td><td>耗煤量大，煤的含硫量高。</td><td>调整能源消费结构，使用清洁能源。</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;①自然因素—降水&lt;/td&gt;&lt;td&gt;①兴建水利措施，对长江河道及平原&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;炎劳灾害（中、下游）&lt;/td&gt;&lt;td&gt;①人民生命财产遭到巨大损失，②生态环境遭受包伤，难以恢复&lt;/td&gt;&lt;td&gt;量大且集中，多暴雨。②人文因素—上游水土流失导致湖泊涂墨，加上围垦造成凋&lt;/td&gt;&lt;td&gt;湖区进行涂合治理。②对年次欠修、功能不高的水库、堤坝进行加固，提高防洪标准。③抓好清淤疏浚，恢复河道防洪能力。④严禁围垦湖泊，使占江河、滩地、封塔江河湖泊水道，乱采江河砂石的行为。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;洪能力降低，河道防洪能力减弱，加上防洪工程标准低，年久失修，施工隐患多&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;水体污染&lt;/td&gt;&lt;td&gt;水质下降，危害人体健康，影响水生物生存&lt;/td&gt;&lt;td&gt;工农业迅速发展，城市规模不断扩大，经济发展与环境保护没有同步。&lt;/td&gt;&lt;td&gt;①加强工业污染防治，做好环境整治工作，对现有污染源采取切实有效措施，限期治理，按期达标。②对新建项目要做到生产与“三废”防治同时规划，同步建设。③对上海等工业聚集程度高的地区，做好城市规划工作&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;把环境保护和环境建设作为城市建设的重要内容。&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;酸雨&lt;/td&gt;&lt;td&gt;导致水体、土壤酸化，对植物、建筑物造成腐蚀性危害&lt;/td&gt;&lt;td&gt;精煤量大，煤的含硫量高。&lt;/td&gt;&lt;td&gt;调整能源消费结构，使用清洁能源。&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td></td><td></td><td>①自然因素—降水</td><td>①兴建水利措施，对长江河道及平原</td></tr><tr><td>炎劳灾害（中、下游）</td><td>①人民生命财产遭到巨大损失，②生态环境遭受包伤，难以恢复</td><td>量大且集中，多暴雨。②人文因素—上游水土流失导致湖泊涂墨，加上围垦造成凋</td><td>湖区进行涂合治理。②对年次欠修、功能不高的水库、堤坝进行加固，提高防洪标准。③抓好清淤疏浚，恢复河道防洪能力。④严禁围垦湖泊，使占江河、滩地、封塔江河湖泊水道，乱采江河砂石的行为。</td></tr><tr><td></td><td></td><td>洪能力降低，河道防洪能力减弱，加上防洪工程标准低，年久失修，施工隐患多</td><td></td></tr><tr><td>水体污染</td><td>水质下降，危害人体健康，影响水生物生存</td><td>工农业迅速发展，城市规模不断扩大，经济发展与环境保护没有同步。</td><td>①加强工业污染防治，做好环境整治工作，对现有污染源采取切实有效措施，限期治理，按期达标。②对新建项目要做到生产与“三废”防治同时规划，同步建设。③对上海等工业聚集程度高的地区，做好城市规划工作</td></tr><tr><td></td><td></td><td></td><td>把环境保护和环境建设作为城市建设的重要内容。</td></tr><tr><td>酸雨</td><td>导致水体、土壤酸化，对植物、建筑物造成腐蚀性危害</td><td>精煤量大，煤的含硫量高。</td><td>调整能源消费结构，使用清洁能源。</td></tr></table></div></div>
+  </div>
+</section>
+<div class="mode"><h2>模式 C · 一表拆多 / 表头丢失</h2><p>一张 GT 表被切成多个预测块，或表头与主体分离，导致匹配失败。</p></div>
+<section class="case">
+  <header>
+    <h3>地形阶梯表被拆成两块 <span class="badge red">IoU=0.64</span></h3>
+    <div class="meta"><span class="badge id">table-0020</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.328021 · TEDS_structure_only=0.7 · Edit_dist=0.44208</span> <span class="badge score">IoU=0.644</span></div>
+  </header>
+  <p class="cap">预测两个 Table 块分别只有表头碎片和后半身；“第一级阶梯 / 4000米以上”整块丢失。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0020.png" alt="table-0020 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;阶梯名称&lt;/td&gt;&lt;td&gt;海拔高度&lt;/td&gt;&lt;td&gt;主要地形类型&lt;/td&gt;&lt;td&gt;主要地形区&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;第一级阶梯&lt;/td&gt;&lt;td&gt;4000米以上&lt;/td&gt;&lt;td&gt;高原&lt;/td&gt;&lt;td&gt;青藏高原、柴达木盆地&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;4&quot;&gt;界线：昆仑山-祁连山-横断山脉东缘&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;第二级阶梯&lt;/td&gt;&lt;td&gt;1000～2000米&lt;/td&gt;&lt;td&gt;高原、盆地&lt;/td&gt;&lt;td&gt;内蒙古高原、云贵高原、黄土高原、四川盆地、塔里木盆地、准噶尔盆地&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;第三级阶梯&lt;/td&gt;&lt;td&gt;500米以下&lt;/td&gt;&lt;td&gt;丘陵、山地、平原、盆地相间分布&lt;/td&gt;&lt;td&gt;东南丘陵、东北平原、华北平原、长江中下游平原&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>阶梯名称</td><td>海拔高度</td><td>主要地形类型</td><td>主要地形区</td></tr><tr><td>第一级阶梯</td><td>4000米以上</td><td>高原</td><td>青藏高原、柴达木盆地</td></tr><tr><td colspan="4">界线：昆仑山-祁连山-横断山脉东缘</td></tr><tr><td>第二级阶梯</td><td>1000～2000米</td><td>高原、盆地</td><td>内蒙古高原、云贵高原、黄土高原、四川盆地、塔里木盆地、准噶尔盆地</td></tr><tr><td>第三级阶梯</td><td>500米以下</td><td>丘陵、山地、平原、盆地相间分布</td><td>东南丘陵、东北平原、华北平原、长江中下游平原</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;内蒙古高原、云贵高原黄&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;第二级阶梯&lt;/td&gt;&lt;td&gt;1000~2000米&lt;/td&gt;&lt;td&gt;高原、盆地&lt;/td&gt;&lt;td&gt;土高原、四川盆地、塔里梅&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;地、准噶尔盆地&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;丘陵、山地、平&lt;/td&gt;&lt;td&gt;东南丘陵、东北平原&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;第三级阶梯&lt;/td&gt;&lt;td&gt;500米以下&lt;/td&gt;&lt;td&gt;原、盆地相&lt;/td&gt;&lt;td&gt;华北平原、长江中下&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;间分布&lt;/td&gt;&lt;td&gt;游平原&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td></td><td></td><td></td><td>内蒙古高原、云贵高原黄</td></tr><tr><td>第二级阶梯</td><td>1000~2000米</td><td>高原、盆地</td><td>土高原、四川盆地、塔里梅</td></tr><tr><td></td><td></td><td></td><td>地、准噶尔盆地</td></tr><tr><td></td><td></td><td>丘陵、山地、平</td><td>东南丘陵、东北平原</td></tr><tr><td>第三级阶梯</td><td>500米以下</td><td>原、盆地相</td><td>华北平原、长江中下</td></tr><tr><td></td><td></td><td>间分布</td><td>游平原</td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>上标序数表列结构错 <span class="badge red">TEDS=0.34</span></h3>
+    <div class="meta"><span class="badge id">table-0036</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.336416 · TEDS_structure_only=0.555556 · Edit_dist=0.324906</span> <span class="badge score">IoU=0.9147</span></div>
+  </header>
+  <p class="cap">GT 是 4 列 $1^{st}$ first 形式；预测拆成 8 列纯文本，上标与 tenth 识别均有误。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0036.png" alt="table-0036 crop" loading="lazy"/><figcaption>原图裁剪 · notes_f7f010b78016aeebd76e56d9283eb6</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;$1^{st}$ first&lt;/td&gt;&lt;td&gt;$9^{th}$ ninth&lt;/td&gt;&lt;td&gt;$17^{th}$ seventeenth&lt;/td&gt;&lt;td&gt;$21^{st}$ twenty-first&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$2^{nd}$ second&lt;/td&gt;&lt;td&gt;$10^{th}$ tenth&lt;/td&gt;&lt;td&gt;$18^{th}$ eighteenth&lt;/td&gt;&lt;td&gt;$22^{nd}$ twenty-second&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$3^{rd}$ third&lt;/td&gt;&lt;td&gt;$11^{th}$ eleventh&lt;/td&gt;&lt;td&gt;$19^{th}$ nineteenth&lt;/td&gt;&lt;td&gt;$23^{rd}$ twenty-third&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$4^{th}$ fourth&lt;/td&gt;&lt;td&gt;$12^{th}$ twelfth&lt;/td&gt;&lt;td&gt;$20^{th}$ twentieth&lt;/td&gt;&lt;td&gt;$35^{th}$ thirty-fifth&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$5^{th}$ fifth&lt;/td&gt;&lt;td&gt;$13^{th}$ thirteenth&lt;/td&gt;&lt;td&gt;$30^{th}$ thirtieth&lt;/td&gt;&lt;td&gt;$101^{st}$ one hundred &lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$6^{th}$ sixth&lt;/td&gt;&lt;td&gt;$14^{th}$ fourteenth&lt;/td&gt;&lt;td&gt;$80^{th}$ eightieth&lt;/td&gt;&lt;td&gt;and first&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$7^{th}$ seventh&lt;/td&gt;&lt;td&gt;$15^{th}$ fifteenth&lt;/td&gt;&lt;td&gt;$90^{th}$ ninetieth&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;$8^{th}$ eighth&lt;/td&gt;&lt;td&gt;$16^{th}$ sixteenth&lt;/td&gt;&lt;td&gt;$100^{th}$ one hundredth&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>$1^{st}$ first</td><td>$9^{th}$ ninth</td><td>$17^{th}$ seventeenth</td><td>$21^{st}$ twenty-first</td></tr><tr><td>$2^{nd}$ second</td><td>$10^{th}$ tenth</td><td>$18^{th}$ eighteenth</td><td>$22^{nd}$ twenty-second</td></tr><tr><td>$3^{rd}$ third</td><td>$11^{th}$ eleventh</td><td>$19^{th}$ nineteenth</td><td>$23^{rd}$ twenty-third</td></tr><tr><td>$4^{th}$ fourth</td><td>$12^{th}$ twelfth</td><td>$20^{th}$ twentieth</td><td>$35^{th}$ thirty-fifth</td></tr><tr><td>$5^{th}$ fifth</td><td>$13^{th}$ thirteenth</td><td>$30^{th}$ thirtieth</td><td>$101^{st}$ one hundred </td></tr><tr><td>$6^{th}$ sixth</td><td>$14^{th}$ fourteenth</td><td>$80^{th}$ eightieth</td><td>and first</td></tr><tr><td>$7^{th}$ seventh</td><td>$15^{th}$ fifteenth</td><td>$90^{th}$ ninetieth</td><td></td></tr><tr><td>$8^{th}$ eighth</td><td>$16^{th}$ sixteenth</td><td>$100^{th}$ one hundredth</td><td></td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;1st&lt;/td&gt;&lt;td&gt;first&lt;/td&gt;&lt;td&gt;9th&lt;/td&gt;&lt;td&gt;ninth&lt;/td&gt;&lt;td&gt;17th&lt;/td&gt;&lt;td&gt;seventeenth&lt;/td&gt;&lt;td&gt;21st&lt;/td&gt;&lt;td&gt;twenty-first&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;2nd&lt;/td&gt;&lt;td&gt;second&lt;/td&gt;&lt;td&gt;10th&lt;/td&gt;&lt;td&gt;teenth&lt;/td&gt;&lt;td&gt;18th&lt;/td&gt;&lt;td&gt;eighteenth&lt;/td&gt;&lt;td&gt;22nd&lt;/td&gt;&lt;td&gt;twenty-second&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;3rd&lt;/td&gt;&lt;td&gt;third&lt;/td&gt;&lt;td&gt;11th&lt;/td&gt;&lt;td&gt;eleventh&lt;/td&gt;&lt;td&gt;19th&lt;/td&gt;&lt;td&gt;nineteenth&lt;/td&gt;&lt;td&gt;23rd&lt;/td&gt;&lt;td&gt;twenty-third&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;4th&lt;/td&gt;&lt;td&gt;fourth&lt;/td&gt;&lt;td&gt;12th&lt;/td&gt;&lt;td&gt;twelfth&lt;/td&gt;&lt;td&gt;20th&lt;/td&gt;&lt;td&gt;twentieth&lt;/td&gt;&lt;td&gt;35th&lt;/td&gt;&lt;td&gt;thirty-fifth&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;5th&lt;/td&gt;&lt;td&gt;fifth&lt;/td&gt;&lt;td&gt;13th&lt;/td&gt;&lt;td&gt;thirteenth&lt;/td&gt;&lt;td&gt;30th&lt;/td&gt;&lt;td&gt;thirtieth&lt;/td&gt;&lt;td&gt;101st&lt;/td&gt;&lt;td&gt;one hundred&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;6th&lt;/td&gt;&lt;td&gt;sixth&lt;/td&gt;&lt;td&gt;14th&lt;/td&gt;&lt;td&gt;fourteenth&lt;/td&gt;&lt;td&gt;80th&lt;/td&gt;&lt;td&gt;eightieth&lt;/td&gt;&lt;td&gt;and first&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;7th&lt;/td&gt;&lt;td&gt;seventh&lt;/td&gt;&lt;td&gt;15th&lt;/td&gt;&lt;td&gt;fifteenth&lt;/td&gt;&lt;td&gt;90th&lt;/td&gt;&lt;td&gt;ninetieth&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;8th&lt;/td&gt;&lt;td&gt;eighth&lt;/td&gt;&lt;td&gt;16th&lt;/td&gt;&lt;td&gt;sixteenth&lt;/td&gt;&lt;td&gt;100th&lt;/td&gt;&lt;td&gt;one hundredth&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td>1st</td><td>first</td><td>9th</td><td>ninth</td><td>17th</td><td>seventeenth</td><td>21st</td><td>twenty-first</td></tr><tr><td>2nd</td><td>second</td><td>10th</td><td>teenth</td><td>18th</td><td>eighteenth</td><td>22nd</td><td>twenty-second</td></tr><tr><td>3rd</td><td>third</td><td>11th</td><td>eleventh</td><td>19th</td><td>nineteenth</td><td>23rd</td><td>twenty-third</td></tr><tr><td>4th</td><td>fourth</td><td>12th</td><td>twelfth</td><td>20th</td><td>twentieth</td><td>35th</td><td>thirty-fifth</td></tr><tr><td>5th</td><td>fifth</td><td>13th</td><td>thirteenth</td><td>30th</td><td>thirtieth</td><td>101st</td><td>one hundred</td></tr><tr><td>6th</td><td>sixth</td><td>14th</td><td>fourteenth</td><td>80th</td><td>eightieth</td><td>and first</td><td></td></tr><tr><td>7th</td><td>seventh</td><td>15th</td><td>fifteenth</td><td>90th</td><td>ninetieth</td><td></td><td></td></tr><tr><td>8th</td><td>eighth</td><td>16th</td><td>sixteenth</td><td>100th</td><td>one hundredth</td><td></td><td></td></tr></table></div></div>
+  </div>
+</section>
+<div class="mode"><h2>模式 D · 公式识别与匹配</h2><p>内容被截断、中文变量误识、或评测匹配到无关公式。</p></div>
+<section class="case">
+  <header>
+    <h3>“高”被误识为 1/10，且匹配错位 <span class="badge red">CDM=0.39</span></h3>
+    <div class="meta"><span class="badge id">formula-0013</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.386 · Edit_dist=0.529954</span> <span class="badge score">IoU=0.0</span></div>
+  </header>
+  <p class="cap">原图是梯形面积 =½(AD+BC)×高。公式嵌在 Text 里，“高”认成 1/10；评测还匹配到无关的面积比公式。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0013.png" alt="formula-0013 crop" loading="lazy"/><figcaption>原图裁剪 · notes_9e951846094758afac08c620144e3a</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$\begin{aligned}&amp;=\frac{1}{2} (AD+BC)\times \text{高}=\frac{1}{2} \times (8+10)\times \text{高}\\&amp; =9\cdot\text{高.①}\end{aligned}$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">$$
+\therefore \frac { S _ { \Delta M A D } } { S _ { \Delta M B C } } = ( \frac { 1 } { 4 } ) ^ { 2 } = \frac { 1 6 } { 2 5 }
+$$
+</div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>四边形面积公式语义跑偏 <span class="badge amber">CDM=0.67</span></h3>
+    <div class="meta"><span class="badge id">formula-0019</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.667 · Edit_dist=0.490909</span> <span class="badge score">IoU=0.9115</span></div>
+  </header>
+  <p class="cap">GT 含“四边形ABCD / 9×高 / √231”；预测下标与根号内容严重走形。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0019.png" alt="formula-0019 crop" loading="lazy"/><figcaption>原图裁剪 · notes_9e951846094758afac08c620144e3a</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$S_{\text{四边形ABCD}} =9×\text{高}=9DP=\frac{9\sqrt{231} }{4}$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">$$
+S _ { \textcircled { 1 } } ( D + \frac { 1 } { 2 } ) A B C D = 9 \times \frac { 1 } { 6 } = 9 D D = \frac { 9 \sqrt { 2 3 1 } } { 4 }
+$$
+</div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>公式被多切出尾巴 <span class="badge amber">CDM=0.47</span></h3>
+    <div class="meta"><span class="badge id">formula-0016</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.467 · Edit_dist=0.708333</span> <span class="badge score">IoU=0.262</span></div>
+  </header>
+  <p class="cap">GT 是 (P=(2+4+5)/2=11/2)；预测多出 =√… 等无关尾巴，IoU=0.26。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0016.png" alt="formula-0016 crop" loading="lazy"/><figcaption>原图裁剪 · notes_9e951846094758afac08c620144e3a</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$(P=\frac{2+4+5}{2} =\frac{11}{2} )$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">$$
+( p = \frac { 2 + 4 + 5 } { 2 } = \frac { 1 1 } { 2 } ) = \sqrt { \frac { 1 1 } { 2 } \cdot \frac { 7 } { 2 } \cdot \frac { 3 } { 2 } \cdot \frac { 1 } { 2 } }
+$$
+</div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>几乎未匹配到正确框 <span class="badge red">IoU=0.06</span></h3>
+    <div class="meta"><span class="badge id">formula-0024</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.653 · Edit_dist=0.350649</span> <span class="badge score">IoU=0.0579</span></div>
+  </header>
+  <p class="cap">检测框与 GT 几乎不重合，CDM=0.65 不能代表框定位正确。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0024.png" alt="formula-0024 crop" loading="lazy"/><figcaption>原图裁剪 · notes_9e951846094758afac08c620144e3a</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$\therefore S_{\triangle BOC} =2. \text{同理:} S_{\triangle AOD } \text{与} S_{\triangle COD }\text{(不同底，同高)}$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">$$
+\because S _ { \Delta A O B } : S _ { \Delta B O C } = 1 : 2 \because S _ { \Delta A O B } = 1
+$$
+</div></div>
+  </div>
+</section>
+<div class="mode"><h2>模式 E · 单元格文字与符号</h2><p>结构大致在，但字词、标点、数学符号有错。单看 CDM/TEDS 可能仍不低。</p></div>
+<section class="case">
+  <header>
+    <h3>学说表 tr 3→4 与文字差 <span class="badge amber">TEDS=0.69</span></h3>
+    <div class="meta"><span class="badge id">table-0002</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.690269 · TEDS_structure_only=0.789474 · Edit_dist=0.262791</span> <span class="badge score">IoU=0.9622</span></div>
+  </header>
+  <p class="cap">检测框准；行被拆、部分文字与换行处理不一致。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0002.png" alt="table-0002 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;学说名称&lt;/td&gt;&lt;td&gt;学说内容&lt;/td&gt;&lt;td&gt;主要证据&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;大陆漂移学说&lt;/td&gt;&lt;td&gt;①2亿年前，地球上各大洲是相互连接的一块大陆，周围是一片汪洋。&lt;br&gt;②后来，大陆分裂并缓慢漂移分离形成今天的七大洲，四大洋的分布状况&lt;/td&gt;&lt;td&gt;①大陆轮廓的吻合性&lt;br&gt;②拼合大陆几种古地层的相似性&lt;br&gt;③拼合大陆几种生物的相似性&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;板块构造学说&lt;/td&gt;&lt;td&gt;①由岩石组成的地球表层不是整体一块，而是由板块拼合而成。&lt;br&gt;②各大板块还在不断的运动之中③板块内部比较稳定，边缘交界处比较活跃多火山地震&lt;br&gt;&lt;/td&gt;&lt;td&gt;①阿尔卑斯山脉、喜马拉雅山脉的形成&lt;br&gt;②东非大裂谷、红海的形成与变化&lt;br&gt;③大西洋的扩张&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td>学说名称</td><td>学说内容</td><td>主要证据</td></tr><tr><td>大陆漂移学说</td><td>①2亿年前，地球上各大洲是相互连接的一块大陆，周围是一片汪洋。<br>②后来，大陆分裂并缓慢漂移分离形成今天的七大洲，四大洋的分布状况</td><td>①大陆轮廓的吻合性<br>②拼合大陆几种古地层的相似性<br>③拼合大陆几种生物的相似性</td></tr><tr><td>板块构造学说</td><td>①由岩石组成的地球表层不是整体一块，而是由板块拼合而成。<br>②各大板块还在不断的运动之中③板块内部比较稳定，边缘交界处比较活跃多火山地震<br></td><td>①阿尔卑斯山脉、喜马拉雅山脉的形成<br>②东非大裂谷、红海的形成与变化<br>③大西洋的扩张</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;学说名称&lt;/td&gt;&lt;td&gt;学说内容&lt;/td&gt;&lt;td&gt;主要证据&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;大陆漂移学说&lt;/td&gt;&lt;td&gt;①2/2年前，地球上各大洲是相互连接的一块大陆，周围是一片汪洋。②后来，大陆分裂并缓慢漂移分离，形成今天七大洲，四大洋的分布状况&lt;/td&gt;&lt;td&gt;①大陆轮廓的吻合性②拼合大陆几种古地层的相似性③拼合大陆几种生物的相似性&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;板块构&lt;/td&gt;&lt;td&gt;①由总石组成的地球表层不是整体一块，而是由板块拼合而成。&lt;/td&gt;&lt;td&gt;①阿不卑斯山脉，喜马拉雅，山脉的形成&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;热学说&lt;/td&gt;&lt;td&gt;②各大板块达在不断的运动之中。③板块内部比较稳定，边缘交界处比较活跃，多火山、地震&lt;/td&gt;&lt;td&gt;②东非大裂谷，红海的形成与变化③大西洋的扩张&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table><tr><td>学说名称</td><td>学说内容</td><td>主要证据</td></tr><tr><td>大陆漂移学说</td><td>①2/2年前，地球上各大洲是相互连接的一块大陆，周围是一片汪洋。②后来，大陆分裂并缓慢漂移分离，形成今天七大洲，四大洋的分布状况</td><td>①大陆轮廓的吻合性②拼合大陆几种古地层的相似性③拼合大陆几种生物的相似性</td></tr><tr><td>板块构</td><td>①由总石组成的地球表层不是整体一块，而是由板块拼合而成。</td><td>①阿不卑斯山脉，喜马拉雅，山脉的形成</td></tr><tr><td>热学说</td><td>②各大板块达在不断的运动之中。③板块内部比较稳定，边缘交界处比较活跃，多火山、地震</td><td>②东非大裂谷，红海的形成与变化③大西洋的扩张</td></tr></table></div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>季风表 rowspan 扩成 6 <span class="badge red">TEDS=0.44</span></h3>
+    <div class="meta"><span class="badge id">table-0010</span> <span class="badge id">table</span> <span class="badge score">TEDS=0.43591 · TEDS_structure_only=0.5 · Edit_dist=0.970215</span> <span class="badge score">IoU=0.9466</span></div>
+  </header>
+  <p class="cap">Edit≈0.97，几乎整表文字序列都偏；跨行从 1 变 6。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/table-0010.png" alt="table-0010 crop" loading="lazy"/><figcaption>原图裁剪 · notes_1ba14cb325bc448f7201b20502ecf2</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="htmlsrc"><code>&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;季节&lt;/td&gt;&lt;td&gt;时间&lt;/td&gt;&lt;td&gt;风向&lt;/td&gt;&lt;td&gt;源地&lt;/td&gt;&lt;td&gt;性质&lt;/td&gt;&lt;td&gt;对降水的影响&lt;/td&gt;&lt;td&gt;对农业生产的影响&lt;/td&gt;&lt;td&gt;解决办法&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;旱季&lt;/td&gt;&lt;td&gt;10月～次年5月&lt;/td&gt;&lt;td&gt;东北季风海洋→陆地&lt;/td&gt;&lt;td&gt;亚欧大陆&lt;/td&gt;&lt;td&gt;温暖干燥&lt;/td&gt;&lt;td&gt;降水量小&lt;/td&gt;&lt;td&gt;干旱缺水，土地龟裂，生产生活用水困难&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;修了很多水利工程，如北部恒河，印度河的灌溉系统，南部的防旱贮水池&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;雨季&lt;/td&gt;&lt;td&gt;6-9月&lt;/td&gt;&lt;td&gt;西南季风陆地→海洋&lt;/td&gt;&lt;td&gt;印度洋&lt;/td&gt;&lt;td&gt;炎热湿润&lt;/td&gt;&lt;td&gt;降水丰沛&lt;/td&gt;&lt;td&gt;风力强盛来得早退得晚，造成水灾，风力不足来得晚退得早，造成旱灾。&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code></div><div class="livetable"><table border="1"><tr><td>季节</td><td>时间</td><td>风向</td><td>源地</td><td>性质</td><td>对降水的影响</td><td>对农业生产的影响</td><td>解决办法</td></tr><tr><td>旱季</td><td>10月～次年5月</td><td>东北季风海洋→陆地</td><td>亚欧大陆</td><td>温暖干燥</td><td>降水量小</td><td>干旱缺水，土地龟裂，生产生活用水困难</td><td rowspan="2">修了很多水利工程，如北部恒河，印度河的灌溉系统，南部的防旱贮水池</td></tr><tr><td>雨季</td><td>6-9月</td><td>西南季风陆地→海洋</td><td>印度洋</td><td>炎热湿润</td><td>降水丰沛</td><td>风力强盛来得早退得晚，造成水灾，风力不足来得晚退得早，造成旱灾。</td></tr></table></div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="htmlsrc"><code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;季节&lt;/td&gt;&lt;td&gt;时间&lt;/td&gt;&lt;td&gt;风向&lt;/td&gt;&lt;td&gt;源地&lt;/td&gt;&lt;td&gt;性质&lt;/td&gt;&lt;td&gt;对降水的影响&lt;/td&gt;&lt;td&gt;对农业生产的影响&lt;/td&gt;&lt;td&gt;解决办法&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;旱季&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;/0月～次年5月&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;东北季风海洋→陆地&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;亚欧大陆&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;温暖干燥&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;降水量小&lt;/td&gt;&lt;td&gt;干燥缺水，土地 &amp;lt;/td&amp;gt;&lt;td&gt;修了很多水&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;裂，\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,</code></div><div class="livetable"><table><tr><td>季节</td><td>时间</td><td>风向</td><td>源地</td><td>性质</td><td>对降水的影响</td><td>对农业生产的影响</td><td>解决办法</td></tr><tr><td rowspan="2">旱季</td><td rowspan="2">/0月～次年5月</td><td rowspan="2">东北季风海洋→陆地</td><td rowspan="2">亚欧大陆</td><td rowspan="2">温暖干燥</td><td rowspan="2">降水量小</td><td>干燥缺水，土地 &lt;/td&gt;<td>修了很多水</td></tr><tr><td>裂，\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,</div></div>
+  </div>
+</section>
+
+<section class="case">
+  <header>
+    <h3>分数/符号级差异 <span class="badge amber">CDM=0.75</span></h3>
+    <div class="meta"><span class="badge id">formula-0010</span> <span class="badge id">formula</span> <span class="badge score">CDM=0.75 · Edit_dist=0.294118</span> <span class="badge score">IoU=0.7746</span></div>
+  </header>
+  <p class="cap">语义接近但 LaTeX 表达不一致，指标与“是否可读”不完全同向。</p>
+  
+  <div class="grid3">
+    <div class="col"><figure><img src="assets/formula-0010.png" alt="formula-0010 crop" loading="lazy"/><figcaption>原图裁剪 · notes_9e951846094758afac08c620144e3a</figcaption></figure></div>
+    <div class="col"><h4>标注 GT</h4><div class="mono gt">$\therefore S_{\text{四边形DBCE}}=9 x-4 x=5 x$</div></div>
+    <div class="col"><h4>MonkeyOCR 预测</h4><div class="mono pred">$$
+\therefore S _ { \textcircled { 1 } } = S _ { \textcircled { 2 } } + S _ { \textcircled { 3 } } D B C E = 9 x - 4 x = 5 x
+$$
+</div></div>
+  </div>
+</section>
+
+<footer>
+数据：OmniDocBench Note test_only 镜像 · 裁剪图来自 diagnostics/OmniDocBench_note_test_only ·
+预测来自 baselines/monkeyocrv2_b_note · 不得用于训练。
+本文件为问题定位汇报，不是训练集，也不是双人复核结论。
+</footer>
+</div>
+</body>
+</html>
